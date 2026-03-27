@@ -13,7 +13,6 @@ class TerminalUI:
     def __init__(self):
         self.messages = []
         self.downloads_dir = "downloads"
-        self.current_video_frame = ""
         if not os.path.exists(self.downloads_dir):
             os.makedirs(self.downloads_dir)
 
@@ -24,10 +23,6 @@ class TerminalUI:
             self.messages.append(f"[bold green]{sender} sent a file:[/] [underline]{content}[/]")
         self.refresh()
 
-    def display_video(self, ascii_frame):
-        self.current_video_frame = ascii_frame
-        self.refresh()
-
     def refresh(self):
         # Clear terminal and re-render
         console.clear()
@@ -35,20 +30,10 @@ class TerminalUI:
         # Chat Table
         chat_table = Table(show_header=False, box=None, expand=True)
         chat_table.add_column("Message")
-        for msg in self.messages[-10:]:
+        for msg in self.messages[-15:]:
             chat_table.add_row(msg)
         
-        # Combine Video and Chat
-        if self.current_video_frame:
-            # Side-by-side or Top-bottom layout
-            video_panel = Panel(self.current_video_frame, title="Live Video", border_style="bold cyan")
-            chat_panel = Panel(chat_table, title="Chat", border_style="bold magenta")
-            
-            # Simple stack for now
-            console.print(video_panel)
-            console.print(chat_panel)
-        else:
-            console.print(Panel(chat_table, title="P2P Encrypted Chat", subtitle="Type '/call' for video call", border_style="bold magenta"))
+        console.print(Panel(chat_table, title="P2P Encrypted Chat", subtitle="Type '/file <path>' to send files | '/exit' to quit", border_style="bold magenta"))
 
     async def get_input(self):
         return await asyncio.to_thread(input, "> ")

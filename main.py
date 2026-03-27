@@ -1,17 +1,13 @@
 import asyncio
 import sys
 import os
-import cv2
 from storage_utils import LocalStorage
 from crypto_utils import CryptoManager
 from network_utils import Peer
 from ui_utils import TerminalUI, console
 from rich.panel import Panel
-from media_utils import frame_to_ascii, AudioManager
 
 ui = TerminalUI()
-audio_manager = AudioManager()
-call_active = False
 
 # Default relay server (User can change this to their own VPS IP/Domain)
 DEFAULT_RELAY = "ws://localhost:8765" 
@@ -24,32 +20,8 @@ async def handle_received_message(data):
         file_data = data['content']
         saved_path = ui.save_file(filename, file_data)
         ui.display_message("Peer", f"Received file: {filename} -> {saved_path}", msg_type="file")
-    elif data['type'] == 'media':
-        if data['media_type'] == 'video':
-            ui.display_video(data['content'])
-        elif data['media_type'] == 'audio':
-            audio_manager.play_chunk(data['content'])
-
-async def video_call_task(peer):
-    cap = cv2.VideoCapture(0)
-    while call_active:
-        ret, frame = cap.read()
-        if ret:
-            ascii_frame = frame_to_ascii(frame)
-            await peer.send_media("video", ascii_frame)
-        await asyncio.sleep(0.1)  # ~10 FPS
-    cap.release()
-
-async def audio_call_task(peer):
-    audio_manager.start_recording()
-    while call_active:
-        chunk = audio_manager.get_chunk()
-        if chunk:
-            await peer.send_media("audio", chunk)
-        await asyncio.sleep(0.01)
 
 async def chat_loop(peer, user_data):
-    global call_active
     ui.refresh()
     while True:
         try:
@@ -64,16 +36,6 @@ async def chat_loop(peer, user_data):
                     await peer.send_file(file_path)
                 else:
                     console.print(f"[bold red]Error:[/] File {file_path} not found.")
-            elif user_input == "/call":
-                if not call_active:
-                    call_active = True
-                    asyncio.create_task(video_call_task(peer))
-                    asyncio.create_task(audio_call_task(peer))
-                    ui.display_message("System", "Started Video/Audio call.")
-            elif user_input == "/stop":
-                call_active = False
-                ui.display_video("")  # Clear video
-                ui.display_message("System", "Stopped call.")
             elif user_input == "/exit":
                 break
             else:

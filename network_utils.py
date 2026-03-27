@@ -37,6 +37,13 @@ class Peer:
         """Connects to a global relay server."""
         self.is_relay = True
         self.room_id = room_id
+        
+        # Sanitize URL: convert https to wss and http to ws
+        if relay_url.startswith("https://"):
+            relay_url = relay_url.replace("https://", "wss://", 1)
+        elif relay_url.startswith("http://"):
+            relay_url = relay_url.replace("http://", "ws://", 1)
+        
         self.connection = await websockets.connect(relay_url)
         # Register the room
         await self.connection.send(json.dumps({
@@ -110,16 +117,5 @@ class Peer:
                 "type": "file",
                 "filename": filename,
                 "content": content_to_send
-            })
-            await self.connection.send(message)
-
-    async def send_media(self, media_type, content):
-        if self.connection:
-            # Media (Audio/Video) is sent unencrypted for performance by default in this app
-            # but can be added if needed.
-            message = json.dumps({
-                "type": "media",
-                "media_type": media_type,
-                "content": content
             })
             await self.connection.send(message)
