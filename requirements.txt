@@ -1,0 +1,6 @@
+rich
+websockets
+cryptography
+opencv-python
+pyaudio
+numpy
