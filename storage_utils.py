@@ -13,10 +13,25 @@ class LocalStorage:
 
     @staticmethod
     def save_user_data(mobile_number, name):
-        data = {"mobile_number": mobile_number, "name": name}
+        data = LocalStorage.get_user_data() or {}
+        data.update({"mobile_number": mobile_number, "name": name})
         with open(CONFIG_FILE, "w") as f:
             json.dump(data, f)
         return data
+
+    @staticmethod
+    def save_relay_url(url):
+        data = LocalStorage.get_user_data() or {}
+        data["last_relay_url"] = url
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(data, f)
+
+    @staticmethod
+    def get_relay_url():
+        data = LocalStorage.get_user_data()
+        if data:
+            return data.get("last_relay_url")
+        return None
 
     @staticmethod
     def is_registered():

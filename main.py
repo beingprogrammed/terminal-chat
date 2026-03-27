@@ -1,6 +1,10 @@
 import asyncio
 import sys
 import os
+import hashlib
+import json
+import urllib.request
+import urllib.parse
 from storage_utils import LocalStorage
 from crypto_utils import CryptoManager
 from network_utils import Peer
@@ -9,8 +13,30 @@ from rich.panel import Panel
 
 ui = TerminalUI()
 
-# Default relay server (User can change this to their own VPS IP/Domain)
+# Default relay server
 DEFAULT_RELAY = "ws://localhost:8765" 
+# Simple public discovery service (Anonymous KV store)
+# This allows peers to find the relay URL automatically if one of them enters it.
+DISCOVERY_API = "https://keyvalue.xyz/12c1e4c7/room_"
+
+def publish_relay_url(room_hash, url):
+    """Saves the relay URL to a public discovery service."""
+    try:
+        data = url.encode('utf-8')
+        req = urllib.request.Request(f"{DISCOVERY_API}{room_hash}", data=data, method='POST')
+        with urllib.request.urlopen(req) as f:
+            pass
+    except:
+        pass # Silent fail if discovery service is down
+
+def fetch_relay_url(room_hash):
+    """Attempts to find a relay URL published by the peer."""
+    try:
+        with urllib.request.urlopen(f"{DISCOVERY_API}{room_hash}") as f:
+            url = f.read().decode('utf-8').strip()
+            return url if url and "://" in url else None
+    except:
+        return None
 
 async def handle_received_message(data):
     if data['type'] == 'text':
@@ -51,11 +77,11 @@ async def main():
     if LocalStorage.is_registered():
         user_data = LocalStorage.get_user_data()
         console.print(f"Existing profile found: [bold green]{user_data['mobile_number']}[/] ([dim]{user_data['name']}[/])")
-        use_existing = input("Use this profile? (Y/n): ").strip().lower()
+        use_existing = input("Use this profile? (Y/n): ").strip().lower() or 'y'
         if use_existing == 'n':
             user_data = None
-
-    if not user_data:
+    
+    if not user_data or not user_data.get('mobile_number'):
         console.print(Panel("Welcome! Let's get started.", title="ChatApp Registration", border_style="bold green"))
         mobile = input("Enter your mobile number: ")
         name = input("Enter your display name: ")
@@ -63,53 +89,49 @@ async def main():
     
     console.print(f"Logged in as: [bold green]{user_data['mobile_number']}[/] ([dim]{user_data['name']}[/])")
 
-    # 2. Encryption Setup
+    # 2. Peer Setup
     console.print("\n[bold yellow]Step 2: Peer Setup[/]")
     peer_mobile = input("Enter Peer's mobile number: ").strip()
     while not peer_mobile:
         peer_mobile = input("[bold red]Peer number is required![/] Enter Peer's mobile number: ").strip()
     
     combined_secret = "".join(sorted([user_data['mobile_number'], peer_mobile]))
+    room_hash = hashlib.sha256(combined_secret.encode()).hexdigest()[:16]
     crypto = CryptoManager(key=combined_secret)
 
-    # 3. Mode (Local or Global)
-    console.print("\n[bold cyan]How do you want to connect?[/]")
-    console.print("1. [bold]Local P2P[/] (Same network, fast)")
-    console.print("2. [bold]Global Relay[/] (Over the internet, needs a relay server)")
-    conn_type = input("Choose (1/2): ").strip()
+    # 3. Automatic Discovery & Connection
+    # First, check if a relay URL is already saved locally
+    relay_url = LocalStorage.get_relay_url()
+    
+    # If not saved locally, try to "Discover" it from the public service
+    if not relay_url:
+        console.print("[dim]Searching for peer's room...[/]")
+        relay_url = fetch_relay_url(room_hash)
+    
+    # If still not found, ask for it once
+    if not relay_url:
+        console.print("\n[bold cyan]Relay Server Setup (One-time)[/]")
+        relay_url = input(f"Enter Relay Server URL (default {DEFAULT_RELAY}): ") or DEFAULT_RELAY
+        LocalStorage.save_relay_url(relay_url)
+        # Publish it so the peer can find it automatically
+        publish_relay_url(room_hash, relay_url)
 
     peer = Peer(crypto_manager=crypto)
     peer.set_on_message(handle_received_message)
 
-    if conn_type == '1':
-        choice = input("Do you want to (H)ost or (J)oin? ").strip().upper()
-        if choice == 'H':
-            console.print("Waiting for local peer to connect...")
-            server_task = asyncio.create_task(peer.start_server())
-            await peer.connection_event.wait()
-            console.print("[bold green]Peer connected locally![/]")
-            await chat_loop(peer, user_data)
-        elif choice == 'J':
-            peer_ip = input("Enter Peer IP (default 127.0.0.1): ") or "127.0.0.1"
-            try:
-                await peer.connect_to_peer(peer_ip)
-                await chat_loop(peer, user_data)
-            except Exception as e:
-                console.print(f"[bold red]Connection failed:[/] {str(e)}")
-    else:
-        relay_url = input(f"Enter Relay Server URL (default {DEFAULT_RELAY}): ") or DEFAULT_RELAY
-        # Room ID is derived from combined mobile numbers so both peers join the same room automatically
-        room_id = hashlib.sha256(combined_secret.encode()).hexdigest()[:16]
-        console.print(f"Connecting to relay room...")
-        try:
-            await peer.connect_to_relay(relay_url, room_id)
-            console.print(f"[bold green]Connected to Relay![/] Room ID: {room_id}")
-            await chat_loop(peer, user_data)
-        except Exception as e:
-            console.print(f"[bold red]Relay Connection failed:[/] {str(e)}")
+    console.print(f"Connecting to [bold cyan]{peer_mobile}[/]...")
+    try:
+        await peer.connect_to_relay(relay_url, room_hash)
+        # Also ensure it's published upon successful connection
+        publish_relay_url(room_hash, relay_url)
+        await chat_loop(peer, user_data)
+    except Exception as e:
+        console.print(f"[bold red]Connection failed:[/] {str(e)}")
+        # Reset saved URL if it was invalid to allow re-entry
+        if "isn't a valid URI" in str(e):
+             LocalStorage.save_relay_url("") 
 
 if __name__ == "__main__":
-    import hashlib # Needed for room_id
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
