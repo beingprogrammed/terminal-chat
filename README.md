@@ -1,49 +1,97 @@
-# P2P Encrypted Chat App
+# Secure P2P Encrypted Chat
 
-A secure, peer-to-peer chat application with automatic key derivation based on mobile numbers.
+A robust, terminal-based peer-to-peer (P2P) chat application featuring end-to-end encryption (E2EE) and secure file sharing. Built for privacy-conscious communication directly between users.
 
-## Features
-- **End-to-End Encryption:** Uses Fernet (AES-128).
-- **Smart Key Derivation:** No need to share keys manually. The app derives a shared secret by combining your number and your peer's number.
-- **File Sharing:** Send files securely over the encrypted channel.
-- **Terminal UI:** Beautiful interface using `rich`.
+---
 
-## Installation
+## 🚀 Features
 
-1. **Clone the repository.**
-2. **Install dependencies:**
+- **End-to-End Encryption (E2EE):** All messages and files are encrypted using Fernet (AES-128 in CBC mode with HMAC) ensuring only the intended recipient can read them.
+- **Smart Key Derivation:** Securely derives a shared encryption key based on the mobile numbers of both peers, eliminating the need for manual key exchange.
+- **P2P Architecture:** Direct communication between users without a central messaging server, enhancing privacy and reducing latency.
+- **Secure File Sharing:** Integrated support for sending files of any type over the encrypted P2P channel.
+- **Modern Terminal UI:** A clean, interactive, and responsive interface powered by the `rich` library.
+
+---
+
+## 🛠️ Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- `pip` (Python package installer)
+
+### Setup
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/chat_app.git
+   cd chat_app
+   ```
+
+2. **(Optional) Create a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-## How to Use
+---
 
-1. **Run the app:** `python main.py`
-2. **Register:** Enter your mobile number.
-3. **Setup:** Enter your **Peer's mobile number**. (Both sides must do this).
-4. **Connect:** One person chooses **(H)ost**, the other **(J)oin**.
+## 📖 How to Use
+
+1. **Start the Application:**
+   ```bash
+   python main.py
+   ```
+
+2. **Registration:**
+   Enter your mobile number when prompted. This is used locally for session identification and key derivation.
+
+3. **Establish Connection:**
+   - Enter your **Peer's mobile number**. Both users must enter each other's numbers to correctly derive the shared encryption key.
+   - Coordinate roles: One user must choose **(H)ost** to listen for connections, and the other must choose **(J)oin** to initiate the connection.
+
+4. **Chatting:**
+   - Type messages and press `Enter` to send.
+   - Use the command `/file <path>` to send a file to your peer.
+   - Use `/exit` to safely close the connection and quit the app.
 
 ---
 
-## Deployment (Making it Public)
+## 🌐 Connectivity & Deployment
 
-Since this is P2P, the "Host" must be reachable. If you are behind a home router, use one of these:
+Since this is a direct P2P application, the **Host** must be network-reachable. If you are behind a router or firewall, consider these options:
 
-### Option A: Tailscale (Recommended)
-1. Both users install [Tailscale](https://tailscale.com/).
-2. Use the Tailscale IP (starts with `100.`) to connect.
-3. **Benefit:** Works through any firewall/router automatically.
+### 1. Tailscale (Easiest & Most Secure)
+- Both users install [Tailscale](https://tailscale.com/).
+- Use the provided Tailscale IP (e.g., `100.x.y.z`) to connect.
+- Works seamlessly through NAT and firewalls without configuration.
 
-### Option B: Ngrok (Quick Public Access)
-1. Download [Ngrok](https://ngrok.com/).
-2. Run: `ngrok tcp 8765`
-3. The Joiner uses the address provided (e.g., `0.tcp.ngrok.io`).
+### 2. Ngrok (Quick Public Access)
+- The Host runs: `ngrok tcp 8765`
+- The Joiner connects using the address provided by Ngrok (e.g., `0.tcp.ngrok.io:12345`).
 
-### Option C: Port Forwarding
-1. Access router settings.
-2. Forward port `8765` to your local IP.
-3. The Joiner uses your **Public IP**.
+### 3. Port Forwarding
+- Configure your router to forward TCP port `8765` to your local machine's IP.
+- The Joiner connects using your **Public IP address**.
 
-### Option D: Cloud VPS
-1. Run the "Host" on a server (AWS, DigitalOcean, etc.).
-2. Ensure port `8765` is open in the server's security group/firewall.
+### 4. Cloud VPS
+- Run the "Host" instance on a cloud provider (AWS, DigitalOcean, etc.).
+- Ensure port `8765` is open in the security group/firewall settings.
+
+---
+
+## 🔒 Technical Details
+
+- **Encryption:** Uses the `cryptography` library's Fernet implementation for high-level symmetric encryption.
+- **Networking:** Utilizes Python's `asyncio` and `websockets` (or standard socket-based P2P depending on implementation) for real-time, asynchronous communication.
+- **UI:** Leveraging `rich` for live-updating layouts, formatted text, and progress bars during file transfers.
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
