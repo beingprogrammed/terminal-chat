@@ -17,17 +17,21 @@ A robust, terminal-based peer-to-peer (P2P) chat application featuring end-to-en
 ## 🛠️ Installation
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - `pip` (Python package installer)
 
 ### Setup
+
 1. **Clone the repository:**
+
    ```bash
-   git clone https://github.com/yourusername/chat_app.git
+   git clone https://github.com/beingprogrammed/terminal-chat.git
    cd chat_app
    ```
 
 2. **(Optional) Create a virtual environment:**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -43,6 +47,7 @@ A robust, terminal-based peer-to-peer (P2P) chat application featuring end-to-en
 ## 📖 How to Use
 
 1. **Start the Application:**
+
    ```bash
    python main.py
    ```
@@ -66,19 +71,23 @@ A robust, terminal-based peer-to-peer (P2P) chat application featuring end-to-en
 Since this is a direct P2P application, the **Host** must be network-reachable. If you are behind a router or firewall, consider these options:
 
 ### 1. Tailscale (Easiest & Most Secure)
+
 - Both users install [Tailscale](https://tailscale.com/).
 - Use the provided Tailscale IP (e.g., `100.x.y.z`) to connect.
 - Works seamlessly through NAT and firewalls without configuration.
 
 ### 2. Ngrok (Quick Public Access)
+
 - The Host runs: `ngrok tcp 8765`
 - The Joiner connects using the address provided by Ngrok (e.g., `0.tcp.ngrok.io:12345`).
 
 ### 3. Port Forwarding
+
 - Configure your router to forward TCP port `8765` to your local machine's IP.
 - The Joiner connects using your **Public IP address**.
 
 ### 4. Cloud VPS
+
 - Run the "Host" instance on a cloud provider (AWS, DigitalOcean, etc.).
 - Ensure port `8765` is open in the security group/firewall settings.
 
