@@ -27,7 +27,7 @@ A robust, terminal-based peer-to-peer (P2P) chat application featuring end-to-en
 
    ```bash
    git clone https://github.com/beingprogrammed/terminal-chat.git
-   cd chat_app
+   cd terminal-chat/
    ```
 
 2. **(Optional) Create a virtual environment:**
